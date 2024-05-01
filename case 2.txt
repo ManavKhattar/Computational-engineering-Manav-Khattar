@@ -1,0 +1,54 @@
+% Define constants and parameters
+Lx = 0.1; % Length of the pipe in meters
+Ly = 0.1; % Height of the pipe in meters
+nx = 50; % Number of grid points in the x direction
+ny = 50; % Number of grid points in the y direction
+dx = Lx / (nx - 1); % Grid spacing in the x direction
+dy = Ly / (ny - 1); % Grid spacing in the y direction
+alpha = 1e-4; % Thermal diffusivity of the fluid
+beta = 1 / 300; % Thermal expansion coefficient of the fluid
+g = 9.81; % Acceleration due to gravity
+Tc = 25; % Temperature of the pipe in degrees Celsius
+Tw = 100; % Wall temperature in degrees Celsius
+rho = 1000; % Density of the fluid
+mu = 0.001; % Dynamic viscosity of the fluid
+k = 0.6; % Thermal conductivity of the fluid
+Pr = mu * alpha / k; % Prandtl number
+Ra = (rho * g * beta * (Tw - Tc) * Lx^3) / (mu * alpha); % Rayleigh number
+
+% Initialize temperature and velocity fields
+T = ones(nx, ny) * Tc; % Temperature field
+u = zeros(nx, ny); % x-velocity field
+v = zeros(nx, ny); % y-velocity field
+
+% Set boundary conditions
+T(:, 1) = Tw; % Bottom wall temperature
+T(:, end) = Tc; % Top wall temperature
+
+% Define the time step and number of iterations
+dt = 0.001; % Time step
+num_iterations = 1000; % Number of iterations
+
+% Main loop for solving the equations
+for iter = 1:num_iterations
+    % Calculate velocities using the Boussinesq approximation
+    beta_T = (T - Tc) / (Tw - Tc); % Temperature difference ratio
+    buoyancy = beta_T * g * (Tw - Tc); % Buoyancy force
+    u(2:end-1, 2:end-1) = u(2:end-1, 2:end-1) + dt * ((-1 / rho) * (T(2:end-1, 2:end-1) - T(1:end-2, 2:end-1)) / dx + alpha * (u(2:end-1, 3:end) - 2 * u(2:end-1, 2:end-1) + u(2:end-1, 1:end-2)) / dx^2 - beta_T(2:end-1, 2:end-1) * g);
+    v(2:end-1, 2:end-1) = v(2:end-1, 2:end-1) + dt * ((-1 / rho) * (T(2:end-1, 2:end-1) - T(2:end-1, 1:end-2)) / dy + alpha * (v(3:end, 2:end-1) - 2 * v(2:end-1, 2:end-1) + v(1:end-2, 2:end-1)) / dy^2);
+
+    % Calculate temperature using the energy equation
+    T_new = T;
+    T_new(2:end-1, 2:end-1) = T(2:end-1, 2:end-1) + dt * (alpha * (T(2:end-1, 3:end) - 2 * T(2:end-1, 2:end-1) + T(2:end-1, 1:end-2)) / dx^2 + alpha * (T(3:end, 2:end-1) - 2 * T(2:end-1, 2:end-1) + T(1:end-2, 2:end-1)) / dy^2);
+
+    % Update temperature and check for convergence
+    T = T_new;
+end
+
+% Plotting the results
+[X, Y] = meshgrid(linspace(0, Lx, nx), linspace(0, Ly, ny));
+contourf(X, Y, T', 50, 'LineStyle', 'none');
+colorbar;
+xlabel('x (m)');
+ylabel('y (m)');
+title('Temperature Distribution (C)');
